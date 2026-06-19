@@ -192,53 +192,33 @@ int main() {
     };
 
     cout << "========================================================\n";
-    cout << "  THUNDERBOLTS: MULTI-CRITERIA LANDING SITE & TRAJECTORY \n";
+    cout << "  THUNDERBOLTS: MULTI-PATH ROVER TRAJECTORY SYSTEM      \n";
     cout << "  (SfS Engine Kernel Base: arXiv:2604.17436)             \n";
     cout << "========================================================\n\n";
 
-    double W = 2.0; 
+    // CLI Input Gathering for SfS Variables
+    double W; 
+    cout << "Enter SfS Smoothness Weight W (e.g., 2.0 for Strategy B baseline): ";
+    cin >> W;
+
+    // Process Refined DEM Environment Map using Shape-from-Shading Model
+    cout << "\n[Processing] Running SfS integration kernel over DF-SAR / DEM matrix layers...\n";
     vector<vector<double>> refinedSlopes = computeSfSSlopeMap(baseGrid, W);
-    pair<int, int> targetIce = {17, 17}; // Centroid of the ice deposit
 
-    // --- PHASE 2: CRITERIA SCANNING KERNEL ---
-    cout << "[Scanning] Analyzing terrain metrics for optimal landing constraints..." << endl;
-    LandingSite bestSite = {0, 0, -99999.0};
+    pair<int, int> start = {2, 2};
+    pair<int, int> target = {17, 17};
 
-    for (int i = 0; i < baseGrid.size(); ++i) {
-        for (int j = 0; j < baseGrid[0].size(); ++j) {
-            // Hard Constraint: Lander cannot touch down on macro-obstacles or steep slopes (> 5 degrees)
-            if (baseGrid[i][j] == OBSTACLE || baseGrid[i][j] == ICE || refinedSlopes[i][j] > 5.0) {
-                continue; 
-            }
+    // Run parallel optimizations based on the team's multi-tier risk layout
+    cout << "[Optimizing] Calculating Safest Route (Green Tier: 1-2 deg limits)..." << endl;
+    vector<pair<int, int>> safestPath = calculateObjectivePath(baseGrid, refinedSlopes, start, target, "SAFEST");
 
-            // Calculate criteria metrics
-            double slopeSafety = 30.0 - refinedSlopes[i][j]; // Lower slope = higher safety score
-            double distanceToIce = calculateH(i, j, targetIce.first, targetIce.second);
-            double proximityScore = 40.0 - distanceToIce;    // Closer to ice target = better resource proximity
+    cout << "[Optimizing] Calculating Energy Efficient Route (Orange Tier: 2-5 deg limits)..." << endl;
+    vector<pair<int, int>> efficientPath = calculateObjectivePath(baseGrid, refinedSlopes, start, target, "EFFICIENT");
 
-            // Multi-Criteria Weight Evaluation
-            double totalScore = (0.6 * slopeSafety) + (0.4 * proximityScore);
+    cout << "[Optimizing] Calculating Shortest Route (Red Tier: 5-8 deg limits)..." << endl;
+    vector<pair<int, int>> shortestPath = calculateObjectivePath(baseGrid, refinedSlopes, start, target, "SHORTEST");
 
-            if (totalScore > bestSite.suitabilityScore) {
-                bestSite.x = i;
-                bestSite.y = j;
-                bestSite.suitabilityScore = totalScore;
-            }
-        }
-    }
-
-    pair<int, int> computedStart = {bestSite.x, bestSite.y};
-    cout << "\n[Target Found] Optimized Landing Site Evaluated at Coordinates: (" 
-         << computedStart.second << ", " << computedStart.first << ")" << endl;
-    cout << "  -> Suitability Evaluation Index Score: " << bestSite.suitabilityScore << "\n\n";
-
-    // --- PHASE 1: EXECUTE MULTI-PATH TRAJECTORY FROM THE NEW SITE ---
-    cout << "[Optimizing] Launching multi-path proctor from new landing coordinates..." << endl;
-    vector<pair<int, int>> safestPath = calculateObjectivePath(baseGrid, refinedSlopes, computedStart, targetIce, "SAFEST");
-    vector<pair<int, int>> efficientPath = calculateObjectivePath(baseGrid, refinedSlopes, computedStart, targetIce, "EFFICIENT");
-    vector<pair<int, int>> shortestPath = calculateObjectivePath(baseGrid, refinedSlopes, computedStart, targetIce, "SHORTEST");
-
-    // File Output Processing (Overwrites the old start marker coordinate dynamically in CSVs)
+    // File Output Processing
     ofstream gridFile("lunar_grid.csv");
     for (int i = 0; i < baseGrid.size(); ++i) {
         for (int j = 0; j < baseGrid[0].size(); ++j) {
@@ -249,9 +229,25 @@ int main() {
     }
     gridFile.close();
 
-    ofstream fSafest("path_safest.csv"); for (auto p : safestPath) fSafest << p.second << "," << p.first << "\n"; fSafest.close();
-    ofstream fEfficient("path_efficient.csv"); for (auto p : efficientPath) fEfficient << p.second << "," << p.first << "\n"; fEfficient.close();
-    ofstream fShortest("path_shortest.csv"); for (auto p : shortestPath) fShortest << p.second << "," << p.first << "\n"; fShortest.close();
+    // Export individual telemetry vector configurations for dashboard color rendering
+    ofstream fSafest("path_safest.csv");
+    for (auto p : safestPath) fSafest << p.second << "," << p.first << "\n";
+    fSafest.close();
+
+    ofstream fEfficient("path_efficient.csv");
+    for (auto p : efficientPath) fEfficient << p.second << "," << p.first << "\n";
+    fEfficient.close();
+
+    ofstream fShortest("path_shortest.csv");
+    for (auto p : shortestPath) fShortest << p.second << "," << p.first << "\n";
+    fShortest.close();
+
+    cout << "\n========================================================\n";
+    cout << " [Success] Mission Control multi-paths proctored successfully!\n";
+    cout << "  -> Safest Vector:   " << safestPath.size() << " nodes tracking (path_safest.csv)\n";
+    cout << "  -> Efficient Vector: " << efficientPath.size() << " nodes tracking (path_efficient.csv)\n";
+    cout << "  -> Shortest Vector:  " << shortestPath.size() << " nodes tracking (path_shortest.csv)\n";
+    cout << "========================================================\n";
 
     return 0;
 }
