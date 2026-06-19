@@ -1,70 +1,66 @@
-import matplotlib.pyplot as plt # type: ignore
-import numpy as np # type: ignore
+import matplotlib.pyplot as plt
+import numpy as np
 import csv
-from matplotlib.colors import ListedColormap # type: ignore
+from matplotlib.colors import ListedColormap
 import os
 
-# --- CONFIGURATION ---
+# --- MULTI-PATH CONFIGURATION ---
 GRID_FILE = 'lunar_grid.csv'
-PATH_FILE = 'rover_path.csv'
+SAFEST_PATH = 'path_safest.csv'
+EFFICIENT_PATH = 'path_efficient.csv'
+SHORTEST_PATH = 'path_shortest.csv'
 
-def generate_dummy_data_if_missing():
-    """Generates dummy files if the C++ files aren't ready yet, just for testing."""
-    if not os.path.exists(GRID_FILE):
-        print("Generating mock lunar_grid.csv...")
-        grid = np.zeros((50, 50)) # 50x50 Safe terrain
-        grid[20:30, 20:30] = 2    # Add a massive steep crater obstacle
-        grid[40:45, 40:45] = 1    # Add a patch of subsurface ice
-        np.savetxt(GRID_FILE, grid, delimiter=',', fmt='%d')
-
-    if not os.path.exists(PATH_FILE):
-        print("Generating mock rover_path.csv...")
-        # A mock path navigating around the crater to the ice
-        mock_path = [[5,5], [15,15], [15, 35], [30, 40], [42, 42]]
-        with open(PATH_FILE, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerows(mock_path)
-
-def visualize_traverse():
-    generate_dummy_data_if_missing()
-
-    # 1. Load the environment grid
-    grid = np.loadtxt(GRID_FILE, delimiter=',')
-
-    # 2. Load the calculated A* path
+def load_path_file(filename):
+    """Safely loads a coordinate trajectory path if it exists."""
     path_x, path_y = [], []
-    with open(PATH_FILE, 'r') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            if row: # skip empty lines
-                path_x.append(float(row[0]))
-                path_y.append(float(row[1]))
+    if os.path.exists(filename):
+        with open(filename, 'r') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if row:
+                    path_x.append(float(row[0]))
+                    path_y.append(float(row[1]))
+    return path_x, path_y
 
-    # 3. Create the Visualization Map
-    fig, ax = plt.subplots(figsize=(10, 8))
+# 1. Load the core map layers
+if not os.path.exists(GRID_FILE):
+    print(f"Error: {GRID_FILE} not found. Run the C++ engine first!")
+    exit()
 
-    # Custom color map: 0: Grey (Safe), 1: Cyan (Ice), 2: Dark Blue (Obstacle)
-    cmap = ListedColormap(['#b0b0b0', '#00e5ff', '#1c2833'])
-    
-    # Render the map
-    cax = ax.imshow(grid, cmap=cmap, origin='upper')
+grid = np.loadtxt(GRID_FILE, delimiter=',')
 
-    # 4. Plot the rover path vector on top
-    ax.plot(path_x, path_y, color='#ff003c', linewidth=3, marker='o', markersize=4, label='Rover Path')
+# 2. Setup the visual plot window
+fig, ax = plt.subplots(figsize=(10, 8))
+plt.title("Thunderbolts: Multi-Objective Mission Dashboard", fontsize=14, fontweight='bold', pad=15)
 
-    # 5. Mark Start (Lander) and End (Ice)
-    ax.plot(path_x[0], path_y[0], '^', color='#00ff00', markersize=12, label='Safe Landing Site')
-    ax.plot(path_x[-1], path_y[-1], '*', color='#ffff00', markersize=14, label='Ice Target Reached')
+# Custom color palette for terrain features
+cmap = ListedColormap(['#ababab', '#00f6ff', '#1c2430']) 
+ax.imshow(grid, cmap=cmap, origin='upper')
 
-    # Formatting for the presentation
-    ax.set_title("Thunderbolts: Subsurface Ice Traverse Model", fontsize=16, fontweight='bold')
-    ax.set_xlabel("X Coordinate", fontsize=12)
-    ax.set_ylabel("Y Coordinate", fontsize=12)
-    ax.legend(loc="upper right")
-    ax.grid(color='white', linestyle='-', linewidth=0.5, alpha=0.2)
+# 3. Load and plot all 3 distinct optimization paths
+sx, sy = load_path_file(SAFEST_PATH)
+ex, ey = load_path_file(EFFICIENT_PATH)
+hx, hy = load_path_file(SHORTEST_PATH)
 
-    plt.tight_layout()
-    plt.show()
+# Plot the lines with Arihant's specified color hierarchy
+if sx:
+    ax.plot(sx, sy, color='#2ecc71', linewidth=4, linestyle='-', marker='o', markersize=4, label='🟢 Safest Path (1-2° Slopes)')
+if ex:
+    ax.plot(ex, ey, color='#e67e22', linewidth=3, linestyle='--', marker='s', markersize=3, label='🟠 Efficient Path (2-5° Slopes)')
+if hx:
+    ax.plot(hx, hy, color='#e74c3c', linewidth=2, linestyle=':', marker='x', markersize=4, label='🔴 Shortest Path (5-8° Slopes)')
 
-if __name__ == "__main__":
-    visualize_traverse()
+# 4. Mark positions for Lander and Subsurface Target Assets
+# Start node (2,2) -> Column 2, Row 2
+ax.plot(2, 2, marker='^', color='#00ff00', markersize=14, linestyle='None', label='Safe Landing Site')
+# End node target center inside the ice patch
+ax.plot(17, 17, marker='*', color='#ffff00', markersize=15, linestyle='None', label='Subsurface Ice Reached')
+
+# Layout refinement adjustments
+ax.set_xlabel("X Coordinate (Kilometers / Reference Matrix)", fontsize=11, labelpad=8)
+ax.set_ylabel("Y Coordinate (Kilometers / Reference Matrix)", fontsize=11, labelpad=8)
+ax.grid(True, which='both', color='white', linestyle='-', linewidth=0.3, alpha=0.5)
+ax.legend(loc='upper right', framealpha=0.9, facecolor='#ffffff', edgecolor='#333333', fontsize=10)
+
+plt.tight_layout()
+plt.show()
