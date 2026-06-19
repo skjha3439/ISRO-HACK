@@ -3,6 +3,14 @@
 
 An open-source, risk-aware planetary pathfinding engine that integrates Chandrayaan-2 Orbiter High-Resolution Camera (OHRC) imagery data via **Shape-from-Shading (SfS)** models with an optimized C++ $A^*$ navigation kernel to proctor safe lunar traverses inside Doubly Shadowed Craters (DPSRs).
 
+## 📊 Functional MVP Output Simulation
+
+Our navigation framework dynamically computes path variations based on fine-scale micro-topography metrics. The visualization below displays a successfully proctored trajectory that balances safety and optimization parameters:
+
+![Thunderbolts Pathfinder Output](mvp.png)
+
+*Figure 1: Final verified MVP trajectory mapping an optimized, risk-aware path around steep crater macro-hazards using sub-meter micro-slope constraints derived from Chandrayaan-2 parameters (Strategy B: W = 2.0, Max Allowable Slope = 12°).*
+
 ## 👥 Team Members (Team Thunderbolts)
 * **Shivam Kumar Jha** - IIIT Manipur
 * **Abhinav Jha** - IIIT Manipur
