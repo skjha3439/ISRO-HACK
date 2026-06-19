@@ -45,20 +45,23 @@ baseGrid = np.array([
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 ])
 
-# --- Native Python Slope Generator ---
+# --- Native Python Slope Generator (Fully Dynamic Version) ---
 def compute_sfs_slopes(W):
     rows, cols = baseGrid.shape
     slopes = np.zeros((rows, cols))
     for i in range(rows):
         for j in range(cols):
             if baseGrid[i, j] == 2:
-                slopes[i, j] = 30.0
+                slopes[i, j] = 30.0  # Obstacle height ceiling constant
             else:
-                noise = np.sin(i * 0.5) * np.cos(j * 0.5)
-                sfs = abs(noise) * (15.0 / (W + 0.1)) if W < 1.0 else 1.5
+                # Generate base synthetic terrain noise pattern
+                noise = abs(np.sin(i * 0.5) * np.cos(j * 0.5))
+                
+                # Smooth scaling: higher W values damp down the slope heights dynamically
+                sfs = noise * (20.0 / (W + 0.2)) 
                 slopes[i, j] = min(25.0, max(1.0, sfs))
                 
-    # Dynamic intermediate hurdle injection layouts
+    # Keep our intermediate tactical checkpoint hurdle bounds
     slopes[4:8, 4:8] = 5.5
     slopes[14, 11:16] = 7.5
     return slopes
@@ -175,7 +178,12 @@ elif phase == "Phase 2: Landing Site Selection":
 
 elif phase == "Phase 3: Volumetric Water-Ice Analysis":
     st.header("💧 Phase 3: Resource Maximization Matrix Analysis")
-    st.markdown("### 📡 Deep Radar Subsurface Inversion Profile (Chandrayaan-2 DF-SAR Mosaic Ingestion)")
+    st.markdown("""
+        **Operational Metrics Readout:**
+        * 🟢 **Safest Route:** Optimized for flat terrain (1° – 2° micro-slopes).
+        * 🟠 **Efficient Route:** Optimized for balanced energy usage (2° – 5° slopes).
+        * 🔴 **Shortest Route:** Minimal distance mapping up to safety thresholds (5° – 8° slopes).
+        """)
     st.latex(r"\text{Estimated Volumetric Water Equivalent (VWE)} = \text{Area} \times \text{Average Depth} \times \text{Dielectric Constant (\epsilon_r)}")
     
     col1, col2, col3 = st.columns(3)
