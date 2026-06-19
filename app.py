@@ -101,7 +101,7 @@ def run_astar(slopes, start, target, mode):
                     if slope > 5.0: penalty = slope * 35.0
                     else: penalty = slope * 4.0
                 elif mode == "SHORTEST":
-                    if slope > 8.0: continue
+                    if slope > 18.0: continue
                     
                 new_g = current_g + dist + penalty
                 neighbor = (nx, ny)
