@@ -4,7 +4,7 @@
 An open-source, risk-aware planetary pathfinding engine that integrates Chandrayaan-2 Orbiter High-Resolution Camera (OHRC) imagery data via **Shape-from-Shading (SfS)** models with an optimized C++ $A^*$ navigation kernel to proctor safe lunar traverses inside Doubly Shadowed Craters (DPSRs).
 
 ## 👥 Team Members (Team Thunderbolts)
-* **Shivam Kumar Jha** (Team Leader) - IIIT Manipur
+* **Shivam Kumar Jha** - IIIT Manipur
 * **Abhinav Jha** - IIIT Manipur
 * **Abhinav Kumar Jha** - IIIT Manipur
 * **Arihant Mishra** - IIIT Manipur
